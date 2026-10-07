@@ -1,5 +1,5 @@
 // ============================================================
-// FF2018 PROXY ESPIAO v5 - cache so de sucesso + captura login
+// FF2018 PROXY ESPIAO v6 - update permitido pelo proxy + cache so de 200
 //   node ff2018_proxy.js
 // Tudo que o jogo pedir vai ser logado em lobby_log.txt
 // - corpos de pedido E resposta salvos em base64 (protobuf intacto)
@@ -60,7 +60,7 @@ function reescreveVer(url, corpo) {
     const j = JSON.parse(corpo.toString("utf8"));
     const v = versaoDoCliente(url);
     const antes = j.remote_version;
-    j.remote_version = v;
+    // v6: NAO mexe no remote_version (deixa o jogo atualizar pelo proxy)
     j.remote_option_version = j.remote_option_version || "1.0.0";
     j.is_server_open = true;
     j.force_to_restart_app = false;
@@ -138,5 +138,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(18000, "0.0.0.0", () => {
-  console.log("=== PROXY ESPIAO v5 no ar :18000 (cache so de 200) ===");
+  console.log("=== PROXY ESPIAO v6 no ar :18000 (update flui, cache so de 200) ===");
 });
