@@ -1,10 +1,13 @@
 // ============================================================
-// FF2018 PROXY ESPIAO v4 - log binario preservado (base64)
+// FF2018 PROXY ESPIAO v5 - cache so de sucesso + captura login
 //   node ff2018_proxy.js
 // Tudo que o jogo pedir vai ser logado em lobby_log.txt
 // - corpos de pedido E resposta salvos em base64 (protobuf intacto)
-// - ver.php reescrito (nunca pede atualizacao)
-// - cache anti-queda + ver.php sintetico se o original cair
+// - ver.php reescrito (nunca peda atualizacao)
+// - cache anti-queda SO de respostas 200 (erros 4xx/5xx nao sao
+//   cacheados nem reutilizados - resposta de erro nunca repete)
+// - resposta 200 do /PlatformLogin salva em loginres.bin
+// - ver.php sintetico se o original cair
 // ============================================================
 const http = require("http");
 const fs = require("fs");
@@ -15,11 +18,24 @@ const CACHE = "cache_respostas.json";
 
 function log(linha) {
   const t = new Date().toISOString();
-  console.log(t, linha);
+  console.log(t, JSON.stringify({ ts: t, ...linha }));
   fs.appendFileSync(LOG, JSON.stringify({ ts: t, ...linha }) + "\n");
 }
 let cache = {};
-try { cache = JSON.parse(fs.readFileSync(CACHE, "utf8")); } catch (e) {}
+try {
+  cache = JSON.parse(fs.readFileSync(CACHE, "utf8"));
+  // v5: limpa entradas de erro herdadas de versoes antigas
+  let removidos = 0;
+  for (const k of Object.keys(cache)) {
+    if (!cache[k] || cache[k].status < 200 || cache[k].status >= 300) {
+      delete cache[k]; removidos++;
+    }
+  }
+  if (removidos > 0) {
+    fs.writeFileSync(CACHE, JSON.stringify(cache));
+    console.log("[v5] cache limpo:", removidos, "entradas de erro descartadas");
+  }
+} catch (e) {}
 function salvaCache() { try { fs.writeFileSync(CACHE, JSON.stringify(cache)); } catch (e) {} }
 
 function versaoDoCliente(url) {
@@ -63,6 +79,7 @@ const server = http.createServer((req, res) => {
     const cab = { ...req.headers };
     delete cab.host;
     const ehVer = req.url.startsWith("/live/ver.php");
+    const ehLogin = req.url.startsWith("/PlatformLogin");
     const p = http.request(
       { host: ALVO.host, port: ALVO.port, method: req.method,
         path: req.url, headers: cab, timeout: 25000 },
@@ -72,8 +89,19 @@ const server = http.createServer((req, res) => {
         pr.on("end", () => {
           let respBody = Buffer.concat(rb);
           if (ehVer) respBody = reescreveVer(req.url, respBody);
-          if (!ehVer) cache[req.url] = { status: pr.statusCode, body: respBody.toString("base64") };
-          salvaCache();
+          // v5: so cacheia SUCESSO (2xx)
+          if (!ehVer && pr.statusCode >= 200 && pr.statusCode < 300) {
+            cache[req.url] = { status: pr.statusCode, body: respBody.toString("base64") };
+            salvaCache();
+          } else if (!ehVer) {
+            log({ tipo: "NAO-CACHEADO", rota: req.url, status: pr.statusCode });
+          }
+          // v5: guarda ouro do login fora do log tb
+          if (ehLogin && pr.statusCode >= 200 && pr.statusCode < 300) {
+            const arq = "loginres_" + Date.now() + ".bin";
+            try { fs.writeFileSync(arq, respBody); } catch (e) {}
+            log({ tipo: "LOGIN-CAPTURADO", status: pr.statusCode, arquivo: arq, bytes: respBody.length });
+          }
           log({ tipo: "resposta", metodo: req.method, rota: req.url,
                 status: pr.statusCode,
                 req_b64: body.slice(0, 32768).toString("base64"),
@@ -93,11 +121,12 @@ const server = http.createServer((req, res) => {
         return;
       }
       const c = cache[req.url];
-      if (c) {
+      if (c && c.status >= 200 && c.status < 300) {
         log({ tipo: "CACHE-REUSADO", rota: req.url, status: c.status });
         res.writeHead(c.status, { "Content-Type": "application/json" });
         res.end(Buffer.from(c.body, "base64"));
       } else {
+        log({ tipo: "SEM-CACHE-SERVIDOR-CAIDO", rota: req.url });
         res.writeHead(502, { "Content-Type": "application/json" });
         res.end("{}");
       }
@@ -109,5 +138,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(18000, "0.0.0.0", () => {
-  console.log("=== PROXY ESPIAO v4 (log binario base64) no ar :18000 ===");
+  console.log("=== PROXY ESPIAO v5 no ar :18000 (cache so de 200) ===");
 });
