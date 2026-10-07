@@ -1,9 +1,10 @@
 // ============================================================
-// FF2018 PROXY ESPIAO v3 - reescreve o ver.php (fim do "atualizar")
+// FF2018 PROXY ESPIAO v4 - log binario preservado (base64)
 //   node ff2018_proxy.js
-// - remote_version sempre igual a do cliente = nunca pede update
-// - cdn_url/server_url apontam pro proxy (captura mais rotas)
-// - cache anti-queda + resposta sintetica se o original cair
+// Tudo que o jogo pedir vai ser logado em lobby_log.txt
+// - corpos de pedido E resposta salvos em base64 (protobuf intacto)
+// - ver.php reescrito (nunca pede atualizacao)
+// - cache anti-queda + ver.php sintetico se o original cair
 // ============================================================
 const http = require("http");
 const fs = require("fs");
@@ -25,7 +26,6 @@ function versaoDoCliente(url) {
   try { return new URL(url, "http://x").searchParams.get("version") || "1.25.3"; }
   catch (e) { return "1.25.3"; }
 }
-
 function verSintetico(url) {
   const v = versaoDoCliente(url);
   return JSON.stringify({
@@ -39,18 +39,16 @@ function verSintetico(url) {
                     region: "DEFAULT", version: v }
   });
 }
-
-// aplica as reescritas do ver.php no corpo da resposta
 function reescreveVer(url, corpo) {
   try {
     const j = JSON.parse(corpo.toString("utf8"));
     const v = versaoDoCliente(url);
     const antes = j.remote_version;
-    j.remote_version = v;                        // nunca pede update
+    j.remote_version = v;
     j.remote_option_version = j.remote_option_version || "1.0.0";
     j.is_server_open = true;
     j.force_to_restart_app = false;
-    j.cdn_url = "http://127.0.0.1:18000/";       // tudo passa pelo proxy
+    j.cdn_url = "http://127.0.0.1:18000/";
     j.server_url = "http://127.0.0.1:18000/";
     log({ tipo: "VER-REAESCRITO", antes, agora: v });
     return Buffer.from(JSON.stringify(j));
@@ -67,7 +65,7 @@ const server = http.createServer((req, res) => {
     const ehVer = req.url.startsWith("/live/ver.php");
     const p = http.request(
       { host: ALVO.host, port: ALVO.port, method: req.method,
-        path: req.url, headers: cab, timeout: 20000 },
+        path: req.url, headers: cab, timeout: 25000 },
       (pr) => {
         let rb = [];
         pr.on("data", (c) => rb.push(c));
@@ -75,13 +73,12 @@ const server = http.createServer((req, res) => {
           let respBody = Buffer.concat(rb);
           if (ehVer) respBody = reescreveVer(req.url, respBody);
           if (!ehVer) cache[req.url] = { status: pr.statusCode, body: respBody.toString("base64") };
-          let resumo;
-          try { resumo = respBody.slice(0, 4000).toString("utf8"); }
-          catch (e) { resumo = "(binario " + respBody.length + " bytes)"; }
+          salvaCache();
           log({ tipo: "resposta", metodo: req.method, rota: req.url,
                 status: pr.statusCode,
-                req_body: body ? body.slice(0, 4000).toString("utf8") : "",
-                resp: resumo });
+                req_b64: body.slice(0, 32768).toString("base64"),
+                resp_b64: respBody.slice(0, 131072).toString("base64"),
+                resp_preview: respBody.slice(0, 300).toString("utf8") });
           res.writeHead(pr.statusCode, { "Content-Type": pr.headers["content-type"] || "application/json" });
           res.end(respBody);
         });
@@ -106,12 +103,11 @@ const server = http.createServer((req, res) => {
       }
     });
     log({ tipo: "pedido", metodo: req.method, rota: req.url,
-          body: body ? body.slice(0, 2000).toString("utf8") : "" });
+          req_b64: body.slice(0, 32768).toString("base64") });
     p.end(body);
   });
 });
 
 server.listen(18000, "0.0.0.0", () => {
-  console.log("=== PROXY ESPIAO v3 (ver.php reescrito) no ar :18000 ===");
-  console.log("NUNCA mais vai pedir atualizacao. Ctrl+C pra parar.");
+  console.log("=== PROXY ESPIAO v4 (log binario base64) no ar :18000 ===");
 });
