@@ -9,15 +9,15 @@ const http = require('http');
 const fs = require('fs');
 const ALVO_IP = '179.198.108.48';
 const LOG = 'lobby_log.txt';
+const PORTA_TCP = 3002;
 
 function agora() { return new Date().toISOString(); }
 function loga(o) { try { fs.appendFileSync(LOG, JSON.stringify(o) + '\n'); } catch (e) {} }
 function base64(d) {
-  try {
-    const s = d.toString('utf8');
-    const ok = /^[\x09\x0a\x0d\x20-\x7e\u00a0-\uffff]*$/.test(s);
-    return ok ? s : Buffer.from(d).toString('base64');
-  } catch (e) { return Buffer.from(d).toString('base64'); }
+  const s = d.toString('utf8');
+  // so guarda como texto se o roundtrip utf8 for perfeito (sem bytes perdidos)
+  if (Buffer.from(s, 'utf8').equals(d) && /^[\x09\x0a\x0d\x20-\x7e\u00a0-\uffff]*$/.test(s)) return s;
+  return d.toString('base64');
 }
 
 // reescreve enderecos deles nos JSON pra voltar pro proxy (porta certa)
@@ -25,6 +25,8 @@ function reescreve(corpo) {
   let t = corpo.toString('utf8');
   let n = 0;
   const subs = [
+    ['http://179.198.108.48:3002', 'http://127.0.0.1:18002'],
+    ['179.198.108.48:3002', '127.0.0.1:18002'],
     ['http://179.198.108.48:3001', 'http://127.0.0.1:18001'],
     ['http://179.198.108.48:3000', 'http://127.0.0.1:18000'],
     ['179.198.108.48:3001', '127.0.0.1:18001'],
@@ -135,8 +137,32 @@ function criaProxy(portaLocal, portaAlvo, tag) {
     });
   });
   server.listen(portaLocal, '0.0.0.0', () =>
-    console.log(`=== FF143 PV PROXY v4 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
+    console.log(`=== FF143 PV PROXY v5 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
 }
 
 criaProxy(18000, 3000, '[cfg]');
 criaProxy(18001, 3001, '[login]');
+
+// TCP cru :18002 -> :3002 (lobby/partida, binario)
+const net = require('net');
+net.createServer(cli => {
+  const ini = Date.now();
+  let env = Buffer.alloc(0), rec = Buffer.alloc(0), logado = false;
+  const up = net.connect(PORTA_TCP, ALVO_IP, () =>
+    console.log(`${agora()} [tcp18002] cliente conectado -> ${ALVO_IP}:${PORTA_TCP}`));
+  cli.on('data', d => { env = Buffer.concat([env, d]); up.write(d); });
+  up.on('data', d => { rec = Buffer.concat([rec, d]); cli.write(d); });
+  const fecha = quem => {
+    if (logado) return; logado = true;
+    console.log(`   [tcp18002] fim ${Date.now() - ini}ms, env ${env.length}b, rec ${rec.length}b`);
+    if (env.length) loga({ t: agora(), tipo: 'tcp-enviado', ms: Date.now() - ini, bytes: env.length, dados: base64(env.slice(0, 4096)) });
+    if (rec.length) loga({ t: agora(), tipo: 'tcp-recebido', ms: Date.now() - ini, bytes: rec.length, dados: base64(rec.slice(0, 4096)) });
+    try { up.destroy(); } catch (e) {} try { cli.destroy(); } catch (e) {}
+  };
+  cli.on('end', () => fecha('cli'));
+  cli.on('close', () => fecha('cli'));
+  up.on('close', () => fecha('up'));
+  up.on('error', e => { console.log(`   [tcp18002] ERRO upstream: ${e.message}`); loga({ t: agora(), tipo: 'tcp-erro', erro: e.message }); fecha('err'); });
+  cli.on('error', () => {});
+}).listen(18002, '0.0.0.0', () =>
+  console.log(`=== FF143 PV PROXY v5 [tcp] :18002 -> ${ALVO_IP}:${PORTA_TCP} ===`));
