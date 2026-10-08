@@ -20,23 +20,31 @@ function base64(d) {
   return d.toString('base64');
 }
 
-// reescreve enderecos deles nos JSON pra voltar pro proxy (porta certa)
+// reescreve enderecos deles BYTE-A-BYTE (sem converter pra texto:
+// resposta binaria de protobuf tem que voltar intacta pro cliente)
 function reescreve(corpo) {
-  let t = corpo.toString('utf8');
+  let buf = corpo;
   let n = 0;
   const subs = [
     ['http://179.198.108.48:3002', 'http://127.0.0.1:18002'],
     ['179.198.108.48:3002', '127.0.0.1:18002'],
     ['http://179.198.108.48:3001', 'http://127.0.0.1:18001'],
-    ['http://179.198.108.48:3000', 'http://127.0.0.1:18000'],
     ['179.198.108.48:3001', '127.0.0.1:18001'],
+    ['http://179.198.108.48:3000', 'http://127.0.0.1:18000'],
     ['179.198.108.48:3000', '127.0.0.1:18000'],
     ['https://api2018.pautavero.com', 'http://127.0.0.1:18000'],
     ['http://api2018.pautavero.com', 'http://127.0.0.1:18000'],
     ['http://179.198.108.48/', 'http://127.0.0.1:18000/']
   ];
-  for (const [a, b] of subs) { while (t.includes(a)) { t = t.replace(a, b); n++; } }
-  return { buf: Buffer.from(t), n };
+  for (const [a, b] of subs) {
+    const A = Buffer.from(a), B = Buffer.from(b);
+    let i;
+    while ((i = buf.indexOf(A)) !== -1) {
+      n++;
+      buf = Buffer.concat([buf.slice(0, i), B, buf.slice(i + A.length)]);
+    }
+  }
+  return { buf, n };
 }
 
 function criaProxy(portaLocal, portaAlvo, tag) {
@@ -92,9 +100,9 @@ function criaProxy(portaLocal, portaAlvo, tag) {
             }
           }
 
-          if (parece_json) {
-            const r = reescreve(rcorpo);
-            if (r.n) console.log(`   [reescrevi ${r.n} enderecos -> proxy]`);
+          const r = reescreve(rcorpo);
+          if (r.n) {
+            console.log(`   [reescrevi ${r.n} enderecos -> proxy]`);
             rcorpo = r.buf;
             delete ur.headers['content-length'];
           }
