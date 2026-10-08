@@ -25,17 +25,21 @@ function base64(d) {
 function reescreve(corpo) {
   let buf = corpo;
   let n = 0;
+  // MESMO TAMANHO obrigatorio: protobuf tem prefixo de tamanho por campo;
+  // encurtar o texto sem arrumar o prefixo corrompe a mensagem inteira.
+  // Porta com zeros a esquerda (o cliente aceita, mesmo truque do APK).
   const subs = [
-    ['http://179.198.108.48:3002', 'http://127.0.0.1:18002'],
-    ['179.198.108.48:3002', '127.0.0.1:18002'],
-    ['http://179.198.108.48:3001', 'http://127.0.0.1:18001'],
-    ['179.198.108.48:3001', '127.0.0.1:18001'],
-    ['http://179.198.108.48:3000', 'http://127.0.0.1:18000'],
-    ['179.198.108.48:3000', '127.0.0.1:18000'],
-    ['https://api2018.pautavero.com', 'http://127.0.0.1:18000'],
-    ['http://api2018.pautavero.com', 'http://127.0.0.1:18000'],
-    ['http://179.198.108.48/', 'http://127.0.0.1:18000/']
+    ['http://179.198.108.48:3002', 'http://127.0.0.1:000018002'],
+    ['179.198.108.48:3002', '127.0.0.1:000018002'],
+    ['http://179.198.108.48:3001', 'http://127.0.0.1:000018001'],
+    ['179.198.108.48:3001', '127.0.0.1:000018001'],
+    ['http://179.198.108.48:3000', 'http://127.0.0.1:000018000'],
+    ['179.198.108.48:3000', '127.0.0.1:000018000'],
+    ['https://api2018.pautavero.com', 'http://127.0.0.1:000018000//'],
+    ['http://api2018.pautavero.com', 'http://127.0.0.1:000018000//']
   ];
+  for (const [a, b] of subs) if (a.length !== b.length)
+    console.log('[AVISO] sub com tamanho diferente: ' + a + ' (' + a.length + ') vs ' + b + ' (' + b.length + ')');
   for (const [a, b] of subs) {
     const A = Buffer.from(a), B = Buffer.from(b);
     let i;
@@ -107,6 +111,7 @@ function criaProxy(portaLocal, portaAlvo, tag) {
             delete ur.headers['content-length'];
           }
           console.log(`   -> ${ur.statusCode} ${rcorpo.length}b em ${Date.now() - ini}ms`);
+          if (req.url.includes('MajorLogin')) console.log('   [MajorLogin resp hex] ' + rcorpo.toString('hex'));
           loga({
             t: agora(), rota: req.url, metodo: req.method, porta: portaAlvo,
             pedido: base64(corpo), pedido_headers: req.headers,
@@ -145,7 +150,7 @@ function criaProxy(portaLocal, portaAlvo, tag) {
     });
   });
   server.listen(portaLocal, '0.0.0.0', () =>
-    console.log(`=== FF143 PV PROXY v6 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
+    console.log(`=== FF143 PV PROXY v7 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
 }
 
 criaProxy(18000, 3000, '[cfg]');
@@ -173,4 +178,4 @@ net.createServer(cli => {
   up.on('error', e => { console.log(`   [tcp18002] ERRO upstream: ${e.message}`); loga({ t: agora(), tipo: 'tcp-erro', erro: e.message }); fecha('err'); });
   cli.on('error', () => {});
 }).listen(18002, '0.0.0.0', () =>
-  console.log(`=== FF143 PV PROXY v6 [tcp] :18002 -> ${ALVO_IP}:${PORTA_TCP} ===`));
+  console.log(`=== FF143 PV PROXY v7 [tcp] :18002 -> ${ALVO_IP}:${PORTA_TCP} ===`));
