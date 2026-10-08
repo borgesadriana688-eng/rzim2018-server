@@ -145,7 +145,7 @@ function criaProxy(portaLocal, portaAlvo, tag) {
     });
   });
   server.listen(portaLocal, '0.0.0.0', () =>
-    console.log(`=== FF143 PV PROXY v5 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
+    console.log(`=== FF143 PV PROXY v6 ${tag} :${portaLocal} -> http://${ALVO_IP}:${portaAlvo} ===`));
 }
 
 criaProxy(18000, 3000, '[cfg]');
@@ -173,4 +173,4 @@ net.createServer(cli => {
   up.on('error', e => { console.log(`   [tcp18002] ERRO upstream: ${e.message}`); loga({ t: agora(), tipo: 'tcp-erro', erro: e.message }); fecha('err'); });
   cli.on('error', () => {});
 }).listen(18002, '0.0.0.0', () =>
-  console.log(`=== FF143 PV PROXY v5 [tcp] :18002 -> ${ALVO_IP}:${PORTA_TCP} ===`));
+  console.log(`=== FF143 PV PROXY v6 [tcp] :18002 -> ${ALVO_IP}:${PORTA_TCP} ===`));
