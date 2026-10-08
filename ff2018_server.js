@@ -163,7 +163,7 @@ const server = http.createServer((req, res) => {
 
     // --- /live/ver.php (o jogo chama essa primeiro) ---
     if (path === '/live/ver.php' || path === '/live/ver') {
-      const v = query.version || '1.25.3';
+      const v = q.version || '1.25.3';
       console.log('[ver.php] cliente:', v);
       return send({
         code: 0, is_server_open: true, is_firewall_open: false, billboard_msg: "",
@@ -172,7 +172,7 @@ const server = http.createServer((req, res) => {
         is_review_server: false, appstore_url: "", force_to_restart_app: false,
         country_code: "BR", gdpr_version: 2, client_ip: req.socket.remoteAddress,
         maintenance_announcement: "", maintenance_region: "",
-        query_params: query
+        query_params: q
       });
     }
     // --- /live/ (lobby 2018) - stub logado ---
