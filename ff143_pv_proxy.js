@@ -76,6 +76,21 @@ const server = http.createServer((req, res) => {
         let rcorpo = Buffer.concat(rchunks);
         const ct = (ur.headers['content-type'] || '') + '';
         const parece_json = /json|text|javascript/.test(ct) || rcorpo.includes('179.198.108.48') || rcorpo.includes('pautavero');
+
+        // ver.php: casa remote_version com a versao que o CLIENTE pediu
+        // (servidor deles pode responder versao de outro projeto e travar o jogo)
+        if (req.url.includes('ver.php')) {
+          const mv = req.url.match(/[?&]version=([0-9a-zA-Z.]+)/);
+          if (mv) {
+            let t = rcorpo.toString('utf8');
+            const antes = (t.match(/"remote_version":"[^"]*"/) || [''])[0];
+            t = t.replace(/"remote_version":"[^"]*"/, '"remote_version":"' + mv[1] + '"');
+            rcorpo = Buffer.from(t);
+            delete ur.headers['content-length'];
+            console.log('   [ver.php] ' + antes + ' -> "remote_version":"' + mv[1] + '"');
+          }
+        }
+
         if (parece_json) {
           const r = reescreve(rcorpo);
           if (r.n) console.log(`   [reescrevi ${r.n} enderecos -> proxy]`);
@@ -95,6 +110,16 @@ const server = http.createServer((req, res) => {
     });
     up.on('error', e => {
       console.log(`   ERRO upstream: ${e.message}`);
+      if (req.url.includes('ver.php')) {
+        const mv = req.url.match(/[?&]version=([0-9a-zA-Z.]+)/);
+        const v = mv ? mv[1] : '1.43.0';
+        const sint = JSON.stringify({ code: 0, is_server_open: true, is_firewall_open: false, billboard_msg: '', remote_version: v, remote_option_version: '1.0.0', cdn_url: 'http://' + MEU + '/', server_url: 'http://' + MEU + '/', is_review_server: false, force_to_restart_app: false, country_code: 'BR', gdpr_version: 2 });
+        console.log('   [VER-SINTETICO] servidor deles caiu, respondi eu');
+        loga({ t: agora(), rota: req.url, metodo: req.method, tipo: 'VER-SINTETICO', resposta: sint });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(sint);
+        return;
+      }
       loga({ t: agora(), rota: req.url, metodo: req.method, pedido: base64(corpo), erro: e.message });
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ erro: 'upstream', detalhe: e.message }));
