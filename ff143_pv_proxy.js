@@ -40,9 +40,28 @@ const server = http.createServer((req, res) => {
   const chunks = [];
   req.on('data', c => chunks.push(c));
   req.on('end', () => {
-    const corpo = Buffer.concat(chunks);
+    let corpo = Buffer.concat(chunks);
     const ini = Date.now();
     console.log(`${agora()} ${req.method} ${req.url} (${corpo.length}b)`);
+
+    // CONTA NOVA: uid velho travado na versao antiga -> uid novo
+    // o servidor cria a conta na versao atual (1.25.11) e devolve
+    // open_id/token novos, que o cliente passa a usar
+    if (req.url.includes('/oauth/guest/token/grant') && corpo.includes('uid=')) {
+      let t = corpo.toString('utf8');
+      const m = t.match(/uid=(\d+)/);
+      if (m) {
+        let novo = '';
+        try { novo = fs.readFileSync('uid_novo.txt', 'utf8').trim(); } catch (e) {}
+        if (!novo || novo === m[1]) {
+          novo = '9' + String(Math.floor(Math.random() * 1e12)).padStart(12, '0');
+          fs.writeFileSync('uid_novo.txt', novo);
+        }
+        t = t.replace(m[0], 'uid=' + novo);
+        corpo = Buffer.from(t);
+        console.log('   [conta nova: uid ' + m[1] + ' -> ' + novo + ']');
+      }
+    }
 
     const cab = { ...req.headers };
     delete cab.host;
