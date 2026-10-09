@@ -17,16 +17,7 @@ function corpo(arq) {
 const MAJORLOGIN = Buffer.from(
   '08bfade204120242521a024252220242522a046c697665320242523a02425242306135633739396637383561383037363136346535613330653834393936646565613663373339393038366239643964354880e101521a687474703a2f2f3132372e302e302e313a3030303031383030326000', 'hex');
 
-const VER = JSON.stringify({
-  appstore_url: 'https://play.google.com/store/apps/details?id=com.dts.freefireth',
-  billboard_msg: '', cdn_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
-  client_ip: '127.0.0.1', code: 0, country_code: 'BR', force_to_restart_app: false,
-  gdpr_version: 2, is_firewall_open: false, is_review_server: false, is_server_open: true,
-  maintenance_announcement: '', maintenance_region_id: -1, open_id: 0, region_id: 0,
-  region_info: { code: 0, is_idf: false, is_restricted_region: false, restriction_text: '' },
-  resource_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/', review_version: '',
-  scribe_report_url: '', server_id: 'brayan', version: '1.43.0'
-});
+const VER = JSON.stringify({"appstore_url": "https://play.google.com/store/apps/details?id=com.dts.freefireth", "billboard_msg": "", "cdn_url": "https://dl.cdn.freefiremobile.com/live/ABHotUpdates/", "client_ip": "::ffff:138.122.236.208", "code": 0, "country_code": "BR", "force_to_restart_app": false, "gdpr_version": 2, "is_firewall_open": false, "is_review_server": false, "is_server_open": true, "maintenance_announcement": "", "maintenance_region": "", "remote_option_version": "optionallocres:26|optionalclothres:282|optionalfullscreencgres:19|optionalludores:19|optionalmap1res:194|optionalmap2res:36|optionalmap4res:19|optionalmapres:17|optionalpetres:17|optionalrushb:38|optionalrushingpetsres:61|optionalvoiceres:147|optionalwerewolves:48", "remote_version": "1.43.0", "server_url": "http://127.0.0.1:000018001/"});
 
 function resp(res, status, buf, tipo) {
   const cab = {
