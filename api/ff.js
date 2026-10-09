@@ -11,20 +11,7 @@ const path = require('path');
 const BASE = 'https://brayan1.vercel.app';
 
 // --- ver.php (JSON real capturado, server_url -> BASE) ---
-const VER = JSON.stringify({
-  appstore_url: 'https://play.google.com/store/apps/details?id=com.dts.freefireth',
-  billboard_msg: '',
-  cdn_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
-  client_ip: '0.0.0.0', code: 0, country_code: 'BR',
-  force_to_restart_app: false, gdpr_version: 2,
-  is_firewall_open: false, is_review_server: false, is_server_open: true,
-  maintenance_announcement: '', maintenance_region_id: -1, open_id: 0, region_id: 0,
-  region_info: { code: 0, is_idf: false, is_restricted_region: false, restriction_text: '' },
-  remote_option_version: '1.0.0', remote_version: '1.43.0',
-  resource_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
-  review_version: '', scribe_report_url: '', server_id: 'brayan',
-  server_url: BASE + '/'
-});
+const VER = "{\"appstore_url\":\"https://play.google.com/store/apps/details?id=com.dts.freefireth\",\"billboard_msg\":\"\",\"cdn_url\":\"https://dl.cdn.freefiremobile.com/live/ABHotUpdates/\",\"client_ip\":\"0.0.0.0\",\"code\":0,\"country_code\":\"BR\",\"force_to_restart_app\":false,\"gdpr_version\":2,\"is_firewall_open\":false,\"is_review_server\":false,\"is_server_open\":true,\"maintenance_announcement\":\"\",\"maintenance_region\":\"\",\"remote_option_version\":\"optionallocres:26|optionalclothres:282|optionalfullscreencgres:19|optionalludores:19|optionalmap1res:194|optionalmap2res:36|optionalmap4res:19|optionalmapres:17|optionalpetres:17|optionalrushb:38|optionalrushingpetsres:61|optionalvoiceres:147|optionalwerewolves:48\",\"remote_version\":\"1.43.0\",\"server_url\":\"https://brayan1.vercel.app/\"}";
 
 // --- MajorLogin (hex TRUE 115b capturado; campo 10 = BASE, 26 bytes exatos) ---
 const MAJORLOGIN = Buffer.from(
