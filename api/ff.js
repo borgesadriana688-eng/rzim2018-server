@@ -1,172 +1,77 @@
 // ============================================================
-// RZIM FF2018 LOGIN SERVER - versao Vercel (serverless)
-// Todas as rotas caem neste handler via vercel.json rewrites.
-// Espelha o servidor original 190.115.198.51:18000 + SDK Garena.
+// BRAYAN LOBBY 1.43 — versao Vercel (serverless)
+// Todas as rotas caem aqui via vercel.json rewrites.
+// Dominio exigido: brayan1.vercel.app (projeto Vercel "brayan1")
+// Protocolo 1.43 Pautavero: ver.php JSON + MajorLogin protobuf + 48 rotas replay.
 // ============================================================
 'use strict';
-const crypto = require('crypto');
-const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 
-const VERSION = process.env.GAME_VERSION || '1.25.3';
-const SECRET_KEY = process.env.SECRET_KEY || 'ff2018_private_server_hmac_key';
+const BASE = 'https://brayan1.vercel.app';
 
-function nowSecs() { return Math.floor(Date.now() / 1000); }
-function b64url(buf) {
-  return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
-}
-function sign(b64) { return crypto.createHmac('sha256', SECRET_KEY).update(b64).digest('hex'); }
+// --- ver.php (JSON real capturado, server_url -> BASE) ---
+const VER = JSON.stringify({
+  appstore_url: 'https://play.google.com/store/apps/details?id=com.dts.freefireth',
+  billboard_msg: '',
+  cdn_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
+  client_ip: '0.0.0.0', code: 0, country_code: 'BR',
+  force_to_restart_app: false, gdpr_version: 2,
+  is_firewall_open: false, is_review_server: false, is_server_open: true,
+  maintenance_announcement: '', maintenance_region_id: -1, open_id: 0, region_id: 0,
+  region_info: { code: 0, is_idf: false, is_restricted_region: false, restriction_text: '' },
+  remote_option_version: '1.0.0', remote_version: '1.43.0',
+  resource_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
+  review_version: '', scribe_report_url: '', server_id: 'brayan',
+  server_url: BASE + '/'
+});
 
-function mkToken(openId, nickname, type, rt) {
-  const p = { open_id: openId, nickname: nickname, type: type, created: nowSecs(), expire: nowSecs() + 86400 * 30 };
-  if (rt) { p.rt = true; p.expire = nowSecs() + 86400 * 60; }
-  const b = b64url(Buffer.from(JSON.stringify(p)));
-  return b + '.' + sign(b);
-}
-function verify(token) {
-  if (!token || String(token).indexOf('.') < 0) return null;
-  const [b, sig] = String(token).split('.');
-  const exp = sign(b);
-  const A = Buffer.from(sig || ''), B = Buffer.from(exp);
-  if (A.length !== B.length || !crypto.timingSafeEqual(A, B)) return null;
-  try {
-    const p = JSON.parse(Buffer.from(b.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
-    return p.expire < nowSecs() ? null : p;
-  } catch (e) { return null; }
-}
-const ALPH = '0123456789abcdefghijklmnopqrstuvwxyz';
-function seededOpenId(seed) {
-  const d = crypto.createHash('sha256').update(String(seed)).digest();
-  let s = '';
-  for (let i = 0; i < 32; i++) s += ALPH[d[i] % 36];
-  return s;
-}
-function uidFromOpenId(openId) {
-  const h = crypto.createHash('sha256').update(String(openId)).digest();
-  return 10000001 + (h[0] | h[1] << 8 | h[2] << 16) % 8999999;
-}
-function guestAccount(nickname, seed) {
-  const openId = seed ? seededOpenId(seed) : seededOpenId('rand-' + crypto.randomBytes(8).toString('hex'));
-  const nick = nickname || ('Guest' + (1000 + (crypto.createHash('sha256').update(openId).digest()[0] * 39) % 8999));
-  return {
-    open_id: openId,
-    platform: 4,
-    nickname: nick,
-    access_token: mkToken(openId, nick, 'guest'),
-    refresh_token: mkToken(openId, nick, 'guest', true),
-    expires_in: 86400 * 30
-  };
+// --- MajorLogin (hex TRUE 115b capturado; campo 10 = BASE, 26 bytes exatos) ---
+const MAJORLOGIN = Buffer.from(
+  '08bfade204120242521a024252220242522a046c697665320242523a02425242306135633739396637383561383037363136346535613330653834393936646565613663373339393038366239643964354880e101521a68747470733a2f2f62726179616e312e76657263656c2e6170706000', 'hex');
+
+// --- corpus: 48 rotas em replay ---
+const IDX = JSON.parse(fs.readFileSync(
+  path.join(process.cwd(), 'brayan_lobby', 'caps_index.json'), 'utf8'));
+
+function corpo(arq) {
+  const rec = fs.readFileSync(path.join(process.cwd(), 'brayan_lobby', 'caps', arq));
+  const corte = rec.toString('latin1').indexOf('\r\n\r\n');
+  return rec.slice(corte + 4);
 }
 
-// ---- request helpers ----
-function parseBody(buf, ctype) {
-  if (!buf || !buf.length) return {};
-  if (/json/.test(ctype || '')) { try { return JSON.parse(buf.toString('utf8')); } catch (e) { return {}; } }
-  if (/x-www-form-urlencoded/.test(ctype || '')) {
-    const o = {};
-    for (const [k, v] of new URLSearchParams(buf.toString('utf8'))) o[k] = v;
-    return o;
-  }
-  return {};
+function enviar(res, status, buf, tipo) {
+  res.setHeader('Content-Type', tipo);
+  res.setHeader('Content-Length', buf.length);
+  res.status(status).end(buf);
 }
-function getParam(body, query, name) {
-  if (body[name] !== undefined && body[name] !== null && String(body[name]) !== '') return body[name];
-  if (query[name] !== undefined && query[name] !== null) return query[name];
-  return '';
-}
-function hostOf(req) { return (req.headers && req.headers.host) || ('127.0.0.1:' + PORT); }
-
-function userInfo(d) {
-  return {
-    open_id: d.open_id, platform: 4, icon: '',
-    nickname: d.nickname || 'Player', gender: 1, level: 1, exp: 0, avatar: '',
-    is_guest: true, created_time: d.created || nowSecs(), vip_level: 0,
-    diamond: 0, gold: 0, coins: 0, rank: 'Bronze', region: 'BR',
-    skin_ids: [], character_ids: [], weapon_skin_ids: [], pet_ids: [], badges: [], achievements: []
-  };
-}
-
 
 module.exports = (req, res) => {
+  const rota = (req.url || '').split('?')[0];
+  const suf = rota.split('/').filter(Boolean).pop() || '';
 
-  const u = new URL(req.url, 'http://x');
-  const chunks = [];
-  req.on('data', c => chunks.push(c));
-  req.on('end', () => {
-    const body = parseBody(Buffer.concat(chunks), req.headers['content-type']);
-    const q = Object.fromEntries(u.searchParams.entries());
-    const path = u.pathname;
-    const send = (obj, code) => {
-      const s = JSON.stringify(obj);
-      res.writeHead(code || 200, { 'Content-Type': 'application/json' });
-      res.end(s);
-    };
-    const tok = () => verify(getParam(body, q, 'access_token'));
+  // ver.php (cliente pede /live/ver.php ou //live/ver.php)
+  if (suf === 'ver.php') {
+    console.log('[brayan] ver.php');
+    return enviar(res, 200, Buffer.from(VER), 'application/json');
+  }
 
-    console.log(new Date().toISOString(), req.method, path, JSON.stringify(body).slice(0, 300));
+  // MajorLogin
+  if (rota.endsWith('/MajorLogin')) {
+    console.log('[brayan] MajorLogin');
+    return enviar(res, 200, MAJORLOGIN, 'application/octet-stream');
+  }
 
-    // --- bootstrap ---
-    if (path === '/health') return send({ status: 'ok', server: 'ff2018-login', version: VERSION });
-    if (path === '/ver.php') {
-      return send({
-        appstore_url: 'https://play.google.com/store/apps/details?id=com.dts.freefireth',
-        billboard_msg: '', cdn_url: 'https://dl.cdn.freefiremobile.com/live/ABHotUpdates/',
-        client_ip: req.socket.remoteAddress, code: 0, country_code: 'BR',
-        force_to_restart_app: false, gdpr_version: 2, is_firewall_open: false,
-        is_review_server: false, is_server_open: true, maintenance_announcement: '',
-        maintenance_region: '', remote_option_version: '', remote_version: VERSION,
-        server_url: 'http://' + hostOf(req) + '/'
-      });
-    }
-    if (path === '/app/info/get') return send({ status: 0, client_log: false });
+  // replay do corpus
+  const e = IDX[rota] || IDX['/' + suf];
+  if (e) {
+    let buf = Buffer.alloc(0);
+    if (e.tem) { try { buf = corpo(e.arq); } catch (_) {} }
+    console.log('[brayan] ' + req.method + ' ' + rota + ' -> ' + e.status + ' (' + buf.length + 'b)');
+    return enviar(res, e.status, buf, 'application/octet-stream');
+  }
 
-    // --- guest flow ---
-    if (path === '/oauth/guest/register' || path === '/guest/register')
-      return send(guestAccount(getParam(body, q, 'nickname') || null, getParam(body, q, 'uid') || getParam(body, q, 'device_id') || null));
-    if (path === '/oauth/guest/token/grant' || path === '/guest/token/grant')
-      return send(guestAccount(null, getParam(body, q, 'uid') || getParam(body, q, 'client_id') || null));
-    if (path === '/oauth/token') {
-      const gt = String(getParam(body, q, 'grant_type'));
-      if (gt === 'refresh_token') {
-        const d = verify(getParam(body, q, 'refresh_token'));
-        if (d && d.rt) return send({ access_token: mkToken(d.open_id, d.nickname, d.type || 'guest'), refresh_token: mkToken(d.open_id, d.nickname, d.type || 'guest', true), expires_in: 86400 * 30, token_type: 'Bearer' });
-        return send({ code: 2017, error: 'invalid_grant' });
-      }
-      return send(guestAccount(null, getParam(body, q, 'uid') || null));
-    }
-    if (path === '/oauth/token/inspect') {
-      const d = verify(getParam(body, q, 'token') || getParam(body, q, 'access_token'));
-      if (!d) return send({ code: 2017, error: 'invalid_grant' });
-      return send({ expiry_time: d.expire, uid: uidFromOpenId(d.open_id), open_id: d.open_id, main_active_platform: 4, app_id: 100067, platform: 4, create_time: d.created || nowSecs(), scope: ['get_user_info', 'get_friends', 'payment', 'send_request'], login_type: 2, login_platform: 4 });
-    }
-    if (path === '/oauth/logout') return send({ success: 'true' });
-    if (path === '/oauth/user/info/get' || path === '/user/info/get') {
-      const d = tok();
-      if (!d) return send({ code: 1004, error: 'invalid_token' });
-      return send(userInfo(d));
-    }
-    if (/^\/(oauth\/)?user\/friends\//.test(path)) return send({ friends: [], total: 0, pending: [] });
-    if (path === '/me' || /^\/v[\d.]+\/me$/.test(path)) {
-      const d = tok();
-      if (!d) { res.writeHead(401, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ error: { code: 190, message: 'Invalid OAuth access token' } })); }
-      return send({ id: String(uidFromOpenId(d.open_id)), name: d.nickname || 'Player', first_name: d.nickname || 'Player', last_name: '' });
-    }
-    if (path === '/api/heartbeat') {
-      const d = tok();
-      if (!d) return send({ code: 1004, error: 'invalid_token' });
-      return send({ status: 'ok', server_time: nowSecs(), game_server: hostOf(req) });
-    }
-    if (path === '/api/msdk') return send({ status: 0, server_time: nowSecs(), game_server: { ip: hostOf(req), port: 443 }, config: { version: VERSION, maintenance: false, notice: '' } });
-    if (path === '/app/feedback') return send({ success: true });
-    if (path === '/app/point/get_balance') return send({ code: 0, point: 0 });
-    if (path === '/game/user/request/send' || path === '/rebates/redeem') return send({ success: true });
-
-    // --- /live/ (lobby 2018) - stub logado ---
-    if (path === '/live' || path.startsWith('/live/')) {
-      console.log('[live]', req.method, path, JSON.stringify(body).slice(0, 200));
-      return send({});
-    }
-
-    console.log('[404]', req.method, path);
-    send({ error: 'invalid_request' }, 404);
-  });
+  // desconhecida: 200 vazio (igual ao comportamento tolerado pelo cliente)
+  console.log('[brayan] desconhecida (200 vazio): ' + rota);
+  enviar(res, 200, Buffer.alloc(0), 'application/octet-stream');
 };
