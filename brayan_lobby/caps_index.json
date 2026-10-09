@@ -1,0 +1,290 @@
+{
+ "/GetLoginData": {
+  "arq": "cap_001_rec.bin",
+  "status": 200,
+  "tamanho": 348,
+  "tem": true
+ },
+ "/GetPlatformProfile": {
+  "arq": "cap_002_rec.bin",
+  "status": 200,
+  "tamanho": 46,
+  "tem": true
+ },
+ "/GetFriendRequestList": {
+  "arq": "cap_003_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/LoginGetDesc": {
+  "arq": "cap_004_rec.bin",
+  "status": 200,
+  "tamanho": 2793,
+  "tem": true
+ },
+ "/GetFreshActivityInfo": {
+  "arq": "cap_005_rec.bin",
+  "status": 200,
+  "tamanho": 1122,
+  "tem": true
+ },
+ "/GetFriendIDs": {
+  "arq": "cap_006_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetEPInfo": {
+  "arq": "cap_058_rec.bin",
+  "status": 200,
+  "tamanho": 684,
+  "tem": true
+ },
+ "/GetEPSubscriptionBonusStatus": {
+  "arq": "cap_008_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetSubscribeStore": {
+  "arq": "cap_009_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetLinkageActivityInfo": {
+  "arq": "cap_047_rec.bin",
+  "status": 200,
+  "tamanho": 134,
+  "tem": true
+ },
+ "/GetBackpack": {
+  "arq": "cap_038_rec.bin",
+  "status": 200,
+  "tamanho": 958418,
+  "tem": true
+ },
+ "/GetInstallmentItems": {
+  "arq": "cap_012_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetMailList": {
+  "arq": "cap_013_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetTopupEventInfo": {
+  "arq": "cap_014_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetNewPlayerLevelUpTaskInfo": {
+  "arq": "cap_015_rec.bin",
+  "status": 404,
+  "tamanho": 151,
+  "tem": true
+ },
+ "/GetFriend": {
+  "arq": "cap_016_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetPlatformFriends": {
+  "arq": "cap_017_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/LoginGetSplash": {
+  "arq": "cap_018_rec.bin",
+  "status": 200,
+  "tamanho": 883,
+  "tem": true
+ },
+ "/GetGachaInfo": {
+  "arq": "cap_069_rec.bin",
+  "status": 200,
+  "tamanho": 19,
+  "tem": true
+ },
+ "/GetBingoRewardsInfo": {
+  "arq": "cap_020_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetDiscountStore": {
+  "arq": "cap_021_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetVeteranTaskDesc": {
+  "arq": "cap_022_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetPetList": {
+  "arq": "cap_044_rec.bin",
+  "status": 200,
+  "tamanho": 1296,
+  "tem": true
+ },
+ "/GetDailyRankingReward": {
+  "arq": "cap_024_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetManualCollectInfo": {
+  "arq": "cap_025_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetPlatformFriendIDs": {
+  "arq": "cap_027_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetAccountSubscriptions": {
+  "arq": "cap_028_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/SelectProfile": {
+  "arq": "cap_037_rec.bin",
+  "status": 200,
+  "tamanho": 38,
+  "tem": true
+ },
+ "/UnlockProfile": {
+  "arq": "cap_033_rec.bin",
+  "status": 200,
+  "tamanho": 38,
+  "tem": true
+ },
+ "/GetManualAllWeaponRewardStates": {
+  "arq": "cap_040_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetManualAllMapRewardStates": {
+  "arq": "cap_041_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/ChangeClothes": {
+  "arq": "cap_042_rec.bin",
+  "status": 200,
+  "tamanho": 46,
+  "tem": true
+ },
+ "/GetStore": {
+  "arq": "cap_043_rec.bin",
+  "status": 200,
+  "tamanho": 17,
+  "tem": true
+ },
+ "/EPVideoAdPortal": {
+  "arq": "cap_045_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/OpenTreasureBox": {
+  "arq": "cap_048_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetRecommendedFriend": {
+  "arq": "cap_051_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetFollowStreamerList": {
+  "arq": "cap_055_rec.bin",
+  "status": 404,
+  "tamanho": 340,
+  "tem": true
+ },
+ "/GetRandomClanList": {
+  "arq": "cap_059_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetAccountLifeSeasonStats": {
+  "arq": "cap_060_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetPlayerPersonalShow": {
+  "arq": "cap_061_rec.bin",
+  "status": 200,
+  "tamanho": 196,
+  "tem": true
+ },
+ "/GetGiftStore": {
+  "arq": "cap_062_rec.bin",
+  "status": 200,
+  "tamanho": 16,
+  "tem": true
+ },
+ "/GetGiftStoreDetails": {
+  "arq": "cap_063_rec.bin",
+  "status": 200,
+  "tamanho": 4,
+  "tem": true
+ },
+ "/GetGiftRankDesc": {
+  "arq": "cap_064_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetExchangeStore": {
+  "arq": "cap_065_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetInstallmentStore": {
+  "arq": "cap_066_rec.bin",
+  "status": 200,
+  "tamanho": 0,
+  "tem": false
+ },
+ "/GetGachaDesc": {
+  "arq": "cap_067_rec.bin",
+  "status": 200,
+  "tamanho": 298,
+  "tem": true
+ },
+ "/GetGachaSpecialExchangeDesc": {
+  "arq": "cap_068_rec.bin",
+  "status": 200,
+  "tamanho": 69,
+  "tem": true
+ },
+ "/PurchaseGacha": {
+  "arq": "cap_070_rec.bin",
+  "status": 200,
+  "tamanho": 222,
+  "tem": true
+ }
+}
