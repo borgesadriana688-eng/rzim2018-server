@@ -1,6 +1,5 @@
 {
-  "version": 2,
-  "builds": [{ "src": "api/ff.js", "use": "@vercel/node" }],
+  "name": "brayan1",
   "functions": {
     "api/ff.js": { "includeFiles": "brayan_lobby/**" }
   },
