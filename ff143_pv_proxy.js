@@ -158,7 +158,9 @@ criaProxy(18001, 3001, '[login]');
 
 // TCP cru :18002 -> :3002 (lobby/partida, binario)
 const net = require('net');
+let seqCon = 0;
 net.createServer(cli => {
+  const seq = ++seqCon;
   const ini = Date.now();
   let env = Buffer.alloc(0), rec = Buffer.alloc(0), logado = false;
   const up = net.connect(PORTA_TCP, ALVO_IP, () =>
@@ -168,8 +170,9 @@ net.createServer(cli => {
   const fecha = quem => {
     if (logado) return; logado = true;
     console.log(`   [tcp18002] fim ${Date.now() - ini}ms, env ${env.length}b, rec ${rec.length}b`);
-    if (env.length) loga({ t: agora(), tipo: 'tcp-enviado', ms: Date.now() - ini, bytes: env.length, dados: base64(env.slice(0, 4096)) });
-    if (rec.length) loga({ t: agora(), tipo: 'tcp-recebido', ms: Date.now() - ini, bytes: rec.length, dados: base64(rec.slice(0, 4096)) });
+    // v8: captura COMPLETA (sem cap) - grava corpo inteiro em arquivo .bin + resumo no log
+    if (env.length) { const f = 'cap_' + String(seq).padStart(3, '0') + '_env.bin'; require('fs').writeFileSync(f, env); loga({ t: agora(), tipo: 'tcp-enviado', ms: Date.now() - ini, bytes: env.length, arq: f }); }
+    if (rec.length) { const f = 'cap_' + String(seq).padStart(3, '0') + '_rec.bin'; require('fs').writeFileSync(f, rec); loga({ t: agora(), tipo: 'tcp-recebido', ms: Date.now() - ini, bytes: rec.length, arq: f }); }
     try { up.destroy(); } catch (e) {} try { cli.destroy(); } catch (e) {}
   };
   cli.on('end', () => fecha('cli'));
