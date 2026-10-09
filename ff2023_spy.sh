@@ -1,18 +1,24 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# ESPIAO MID5 v2 — um comando liga, Ctrl+C desliga
+# ESPIAO MID5 v3 — um comando liga, Ctrl+C desliga
 B='\033[1m'; G='\033[32m'; Y='\033[33m'; C='\033[36m'; R='\033[31m'; N='\033[0m'
 clear
 echo -e "${C}${B}"
 echo "  =============================="
-echo "   ESPIAO MID5 v2 — Rzim FF2023"
+echo "   ESPIAO MID5 v3 — Rzim FF2023"
 echo "  =============================="
 echo -e "${N}"
 
 if ! command -v mitmdump >/dev/null 2>&1; then
   echo -e "${Y}[*] Instalando mitmproxy (so da primeira vez, relaxa)...${N}"
   pkg install -y tur-repo >/dev/null 2>&1
+  pkg update -y >/dev/null 2>&1
   pkg install -y mitmproxy >/dev/null 2>&1
-  command -v mitmdump >/dev/null 2>&1 || { echo -e "${R}[X] Nao deu, roda na mao: pkg install tur-repo -y && pkg install mitmproxy -y${N}"; exit 1; }
+  if ! command -v mitmdump >/dev/null 2>&1; then
+    echo -e "${Y}[*] Pacote nao achou, indo de pip (demora umas 2 min)...${N}"
+    pkg install -y python python-cryptography >/dev/null 2>&1
+    pip install mitmproxy >/dev/null 2>&1
+  fi
+  command -v mitmdump >/dev/null 2>&1 || { echo -e "${R}[X] Nao deu, roda na mao:${N}"; echo -e "${R}    pkg update -y && pkg install python-cryptography -y && pip install mitmproxy${N}"; exit 1; }
 fi
 
 CA="$HOME/.mitmproxy/mitmproxy-ca-cert.cer"
