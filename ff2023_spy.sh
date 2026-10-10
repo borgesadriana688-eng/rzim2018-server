@@ -1,45 +1,52 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# ESPIAO MID5 v7 — FRIDA (captura nativo e Java juntos)
+# ESPIAO MID5 v8 — o espio ja ta DENTRO do APK. Aqui e so a tela dele.
 B='\033[1m'; G='\033[32m'; Y='\033[33m'; C='\033[36m'; R='\033[31m'; N='\033[0m'
 clear
 echo -e "${C}${B}"
 echo "  =============================="
-echo "   ESPIAO MID5 v7 — Rzim FF2023"
+echo "   ESPIAO MID5 v8 — Rzim FF2023"
 echo "  =============================="
 echo -e "${N}"
 
-# Cria o hook que intercepta funcoes de rede (Java e IL2CPP/libc)
-HOOK="/data/local/tmp/ff_hook.js"
-cat > "$HOOK" <<'JS'
-// Hook de funcoes de rede (Frida)
-function logNet(msg) {
-    console.log("[FRIDA] " + msg);
-}
-Java.perform(function() {
-    try {
-        var URL = Java.use("java.net.URL");
-        URL.openConnection.overload().implementation = function() {
-            logNet("Conectando (Java): " + this.toString());
-            return this.openConnection();
-        };
-    } catch(e) {}
-});
-Interceptor.attach(Module.findExportByName("libc.so", "connect"), {
-    onEnter: function(args) {
-        var sock = args[0].toInt32();
-        var sockaddr = args[1];
-        var family = sockaddr.readU16();
-        if (family === 2) { // AF_INET
-            var port = ((sockaddr.add(2).readU8() & 0xFF) << 8) | (sockaddr.add(3).readU8() & 0xFF);
-            var ip = sockaddr.add(4).readU8() + "." + sockaddr.add(5).readU8() + "." + sockaddr.add(6).readU8() + "." + sockaddr.add(7).readU8();
-            logNet("Conectando (C++): " + ip + ":" + port);
-        }
-    }
-});
-JS
+command -v python3 >/dev/null 2>&1 || pkg install -y python >/dev/null 2>&1
+command -v python3 >/dev/null 2>&1 || { echo -e "${R}[X] Roda: pkg install python -y${N}"; exit 1; }
 
-echo -e "${G}[*] Script de espião salvo em: $HOOK${N}"
-echo -e "${Y}[!] IMPORTANTE: Se der 'Permission denied', tu precisa root pra copiar pra /data/local/tmp/${N}"
-echo -e "${Y}[!] Ou entao usa 'adb push $HOOK /data/local/tmp/' se tiver depuracao ligada.${N}"
+cat > $HOME/ff2023_listener.py <<'PY'
+import socket, threading, time, os, sys
+LOG = os.path.expanduser("~/ff2023_captura.txt")
+print("esperando o jogo...", flush=True)
+def serve():
+    srv = socket.socket()
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", 8081))
+    srv.listen(8)
+    while True:
+        c, _ = srv.accept()
+        def go(c=c):
+            try:
+                f = c.makefile("rb")
+                for raw in f:
+                    s = raw.decode("utf-8", "replace").strip()
+                    if s:
+                        ts = time.strftime("%H:%M:%S")
+                        print("[" + ts + "] " + s, flush=True)
+                        with open(LOG, "a") as lf:
+                            lf.write(time.strftime("%H:%M:%S ") + s + "\n")
+            except Exception:
+                pass
+            finally:
+                try: c.close()
+                except Exception: pass
+        threading.Thread(target=go, daemon=True).start()
+serve()
+PY
+
+rm -f $HOME/ff2023_captura.txt
+echo -e "${G}[*] Espiao LIGADO na porta 8081${N}"
+echo -e "${B}[*] Abre o ${G}Spy_MID5${N}${B} e aperta em TUDO (login, loja, ranking, amigos)${N}"
+echo -e "${B}[*] Quando o jogo abrir vai aparecer: ${G}ESPIAO NO AR v8${N}"
+echo -e "${B}[*] Acabou? ${Y}Ctrl+C\${N}\${B} aqui${N}"
 echo ""
-echo -e "${B}[*] Abre o ${G}Spy_MID5 (v3)\${N}${B} e olha o logcat (adb logcat -s Frida)${N}"
+python3 $HOME/ff2023_listener.py
+echo ""
+echo -e "${G}[i] Gravou ff2023_captura.txt! Manda pro Elio no WhatsApp.${N}"
