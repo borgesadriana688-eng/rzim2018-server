@@ -1,59 +1,35 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# ESPIAO MID5 v4 — UM comando liga, Ctrl+C desliga (nada de WiFi)
+# ESPIAO MID5 v5 — o APK ja sabe tudo. Tu so roda isso e abre o jogo.
 B='\033[1m'; G='\033[32m'; Y='\033[33m'; C='\033[36m'; R='\033[31m'; N='\033[0m'
 clear
 echo -e "${C}${B}"
 echo "  =============================="
-echo "   ESPIAO MID5 v4 — Rzim FF2023"
+echo "   ESPIAO MID5 v5 — Rzim FF2023"
 echo "  =============================="
 echo -e "${N}"
 
-echo -e "${Y}[*] Checando as coisas (primeira vez demora mesmo)...${N}"
-command -v mitmdump >/dev/null 2>&1 || {
+if ! command -v mitmdump >/dev/null 2>&1; then
+  echo -e "${Y}[*] Instalando mitmproxy (primeira vez, demora um pouco)..."
   pkg install -y tur-repo >/dev/null 2>&1
   pkg update -y >/dev/null 2>&1
   pkg install -y mitmproxy >/dev/null 2>&1
-  if ! command -v mitmdump >/dev/null 2>&1; then
-    pkg install -y python python-cryptography >/dev/null 2>&1
-    pip install mitmproxy >/dev/null 2>&1
-  fi
-}
-command -v adb >/dev/null 2>&1 || pkg install -y android-tools >/dev/null 2>&1
-command -v mitmdump >/dev/null 2>&1 || { echo -e "${R}[X] Roda na mao: pkg install python-cryptography -y && pip install mitmproxy${N}"; exit 1; }
-command -v adb >/dev/null 2>&1 || { echo -e "${R}[X] Roda na mao: pkg install android-tools -y${N}"; exit 1; }
-
-CA="$HOME/.mitmproxy/mitmproxy-ca-cert.cer"
-[ -f "$CA" ] || { mitmdump -q --set connection_strategy=lazy >/dev/null 2>&1 & P=$!; sleep 4; kill $P 2>/dev/null; sleep 1; }
-if [ -f "$CA" ] && [ ! -f "$HOME/.mitmproxy/instalado" ]; then
-  echo -e "${Y}[*] Vai abrir o instalador: OK > 'Autoridade de certificado (CA)' > Instalar${N}"
-  termux-open "$CA" >/dev/null 2>&1 && touch "$HOME/.mitmproxy/instalado"
-  sleep 8
+  command -v mitmdump >/dev/null 2>&1 || {
+    pkg install -y python python-cryptography binutils >/dev/null 2>&1
+    pip install -q mitmproxy
+  }
 fi
+command -v mitmdump >/dev/null 2>&1 || { echo -e "${R}[X] Nao deu. Roda na mao e tenta de novo:"; echo -e "${R}    pkg update -y && pkg install python-cryptography -y && pip install mitmproxy"; exit 1; }
 
-CFG="$HOME/.ff2023_adb"
-if [ ! -f "$CFG" ]; then
-  echo -e "${B}=== SO UMA VEZ: parear o ADB ===${N}"
-  echo -e "[1] Config > Sobre o telefone > toca 7x em 'versao MIUI'"
-  echo -e "[2] Config > Config adicionais > Opcoes do desenvolvedor > liga ${G}Depuracao sem fio${N}"
-  echo -e "[3] Toca em ${G}Parear dispositivo com codigo${N}"
-  read -p "Porta de PAREAMENTO (ex: 41234): " PPORT
-  read -p "Codigo de 6 digitos: " CODE
-  adb pair localhost:$PPORT $CODE || { echo -e "${R}[X] Pareamento errado, roda de novo${N}"; exit 1; }
-  read -p "Agora a porta da tela PRINCIPAL da Depuracao sem fio (ex: 37851): " CPORT
-  echo "$CPORT" > "$CFG"
-fi
-CPORT=$(cat "$CFG")
-adb connect localhost:$CPORT >/dev/null 2>&1
-sleep 2
-adb devices 2>/dev/null | grep -q "device$" || {
-  echo -e "${R}[X] Nao conectou. Liga a 'Depuracao sem fio' nas Opcoes do desenvolvedor e roda de novo.${N}"
-  rm -f "$CFG"; exit 1; }
+# o mesmo certificado que esta assado dentro do Spy_MID5
+mkdir -p $HOME/.mitmproxy
+[ -f $HOME/.mitmproxy/mitmproxy-ca.pem ] || echo "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBc016Y0FxWWxXcmxwa2VlUDhQYnYxeVM5cElCQmdnWHZrek5oNGxxeHczUUpjQnoyCkRud1JycmlJSnVRY0IwZ05mWmRoWXlZMGZjekFseGx3S284eW42ZWRwQ29PMmFjcnc1SGtaVVRld04rdG1FVjkKNUE3WGs3SUt1bXl5dmNBSW9nc0txT0tLTXUrdzRYS2dKL1BUUzdSYnltMkRycWVpb2U4NEpIZ0lqanFwcXM0QQprb3YxZndUNU5ybDlmeU9pbndXYlFORExjM09Xc296NDhDUXA4MmpCckU5T3Rua001cUZGRVlqNktrYjhMOUhuClcyYzRqMXJCb1JBVmJadnQ2bHBtTUdTVmx5bjdjSnN5bXcyc0NIbThmRkpHY3BkV1ZmRGFUYTZ1SEg4MXFTUEoKaWdxay9KZTdjdWpic0UvSHY4SnAwOC9RZTJEckRVVnhMUktFMXdJREFRQUJBb0lCQURIcEV5NzRRbEZUU0ZjMQpITEIwdFk1eHc4dWRuV0NjVmw2aXdiNUp4aWNjS2RIcGl4alpzNUEwYmRNMDBDaktFV3prQUUwaUt1MWNrUDNXCjQ1QlFMb1ZkcHlZQjdZRktMUk9mcXU5ZnV0YU9EbzZQQjVRTEVKYVVTMjBIWklvbW5RbEp2cStnakUwRzExTTkKcmJLNXBXdVl0ZFQyaDVjVm9kYS9Gb1ZORVhVODZDajVBaU9ob2lSTHg0b1laajVlMVpudEh4eDhjYUtGYUY1TwpSOWpZZTZJdTB2Rm1BTk4rQXlyd2hSY0ZmaEZ3WVBacFdiRzNCZEJZdWtSUGNScFdFUmp3RnFidWpvQmRJYUt4Cm1IUlVJUE42Y2dTem5QcktNZkhicjBXbHJnM3JLUHVGcWhBcmRZWnRUK0tBK0NoKzY4eHFxSW56cndMOGVTTXoKb2laL1ZZa0NnWUVBMkJ2OG1Xa051ZW1RVUZQQ2lSQjk1TEhwMTBQNGZaMDNXdGkvM1ZVR0FRTzMvdkxCMGtOTApUdEFMdTQycGFwb3hicFl5eVp4RW1ML0FlR2RILzhhdEhSekJhcGtNeFZtUUNiL044bTB5cFFldUlpcVVMOFY3CnFjTmtMKzlLRitvWkJzcW1hQWpXTUkyb2VmaTJGT2ptRmFRbDUwbzlGRlJnYm1jOVF6cHRUNHNDZ1lFQTBXOWQKSzN6WjB0YUlXaWUvNjRZNWlVZUdHbVJUS1hJZmxDWXpYSi9xS3RZckplRFp5MmxOSGF6dHJkUjY2SmQwQTIwQgpwZzROVmVOYXcrc3RWclFNVDNDcVJWN0p0dURiUGNpQVlqU2dyN0pPVFJRaGpkSmgvM1MxUDNWeU9Hb2xWSHVTCnc5SE1lU3JOa20xR3lpS0srRWp2Y3pZWFIremtyREtDWHJVNnlXVUNnWUVBdERJeDMrRSs5c1FQOTByQUxQVzUKWTVZTis5YkxQa0ozUTZMejZLUGFpOElFQyt0elBkV3ExNTZXQ2Q5SFlvSUxzY0Evdk9nMk1uL0JCeVJuWHBqVgpCQzlULzRSNnA1dlVoS3lRRnhLQ1ppVVBSNkhsU2lnS3d6VVBOd0Q1OFJMYnAxUVdpU3pGSEZzaUhnSUtJVWxKCmdNWU1iTnowTFIxbUF1akdwbVh6ZTUwQ2dZQmZ1NTBHRk9Mb3VrSEhuQ1hoUGhDc3pMSGkvSHI3RmZ5VFZzYmgKandPV0l5SEVCYnpvZXpEUjRNc2dTMkVIVXJ1b0dUcklzZUdzb2VsS1p3VHBmaEdtZW1TS295Sm5ZdTgwbGFNQgp3UGEyZVRYTGkra3VqNzFWN1A0d2pMbnlTYXJZckVmUkZPUjNlblpQZVg0RFJianFkMFJsRUpPaHdBcGpJQTl4CnhUdWk5UUtCZ0VFT0xGVzg1UEUwN05WZWZUTkZ6NXZrMnZGY24zMUhlaVdSbklpUGx3WElsU0Q2bEF0Z2diM0sKd2FxK0VuaTBrQjVVMGgrVCtlL2ozKzFnN3h1QTYvSW9DaFJhb2JiQmFscHYzYnhmQ08wTTF0dFZLYzV1MG1XZgpldTlBOUtRWlE2MzFxR05idGxXTHljVDFleTZWM3VxditsNmg0SmxIa1VhbkVNdHF3dk54Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlETlRDQ0FoMmdBd0lCQWdJVVozZ3M2ZUExREUvYlA5bERrMllDa3BWZlcyMHdEUVlKS29aSWh2Y05BUUVMCkJRQXdLREVTTUJBR0ExVUVBd3dKYldsMGJYQnliM2g1TVJJd0VBWURWUVFLREFsdGFYUnRjSEp2ZUhrd0hoY04KTWpZeE1EQTRNREF4TVRNeVdoY05Nell4TURBM01EQXhNVE15V2pBb01SSXdFQVlEVlFRRERBbHRhWFJ0Y0hKdgplSGt4RWpBUUJnTlZCQW9NQ1cxcGRHMXdjbTk0ZVRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDCkFRb0NnZ0VCQUxETTNBS21KVnE1YVpIbmovRDI3OWNrdmFTQVFZSUY3NU16WWVKYXNjTjBDWEFjOWc1OEVhNjQKaUNia0hBZElEWDJYWVdNbU5IM013SmNaY0NxUE1wK25uYVFxRHRtbks4T1I1R1ZFM3NEZnJaaEZmZVFPMTVPeQpDcnBzc3IzQUNLSUxDcWppaWpMdnNPRnlvQ2Z6MDB1MFc4cHRnNjZub3FIdk9DUjRDSTQ2cWFyT0FKS0w5WDhFCitUYTVmWDhqb3A4Rm0wRFF5M056bHJLTStQQWtLZk5vd2F4UFRyWjVET2FoUlJHSStpcEcvQy9SNTF0bk9JOWEKd2FFUUZXMmI3ZXBhWmpCa2xaY3ArM0NiTXBzTnJBaDV2SHhTUm5LWFZsWHcyazJ1cmh4L05ha2p5WW9LcFB5WAp1M0xvMjdCUHg3L0NhZFBQMEh0ZzZ3MUZjUzBTaE5jQ0F3RUFBYU5YTUZVd0R3WURWUjBUQVFIL0JBVXdBd0VCCi96QVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBVEFPQmdOVkhROEJBZjhFQkFNQ0FRWXdIUVlEVlIwT0JCWUUKRkg1bHlDa0N1THd2S0duMVZxbHFncGhNay8rSk1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQm9seTNMZ0NqMQpDaVdERVlaNkZJNXI5NFR3ZUhDZWRnVnc3MC9LcEFWQXl2R3BEbmxEVDE2OFc4aUlqcW40OW9OWTZQNnFlUThmCmpGNDM3eWJCTkQzbFBkSVZ6Z2VTVit1cGR3TkhzU0QwcWlWTXMyVFZXV08rUU0vUXJwUTl6OThBeE12MWdmb0oKMG9pQzZmRzRwa3pic1QxT2I0amxSSW9nQ2ZhQmRjQnBzQy84ZFM4QXpGSmJ2SzZrQVV2a1BQZzFZS2NDd1RrNwpBOTU3dEt5VGJTcUxXSzFvZjdyTEs1VG1saTFVRkp5T1hraUk0am5maWhSU3pRRHdVSmMvTGRxcTRhK2pwQWZ5CkxxMjIxdVAvbGd2TVUxZGxLWVNYZ2luczN5RHlSM3NBNExMZWU0Qk5udno3RGhybFpUK3hqZGtKOHB2TXJXT1QKS1ZXRUJxMGE4TEIvCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K" | base64 -d > $HOME/.mitmproxy/mitmproxy-ca.pem
+[ -f $HOME/.mitmproxy/mitmproxy-ca-cert.pem ] || echo "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUROVENDQWgyZ0F3SUJBZ0lVWjNnczZlQTFERS9iUDlsRGsyWUNrcFZmVzIwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0tERVNNQkFHQTFVRUF3d0piV2wwYlhCeWIzaDVNUkl3RUFZRFZRUUtEQWx0YVhSdGNISnZlSGt3SGhjTgpNall4TURBNE1EQXhNVE15V2hjTk16WXhNREEzTURBeE1UTXlXakFvTVJJd0VBWURWUVFEREFsdGFYUnRjSEp2CmVIa3hFakFRQmdOVkJBb01DVzFwZEcxd2NtOTRlVENDQVNJd0RRWUpLb1pJaHZjTkFRRUJCUUFEZ2dFUEFEQ0MKQVFvQ2dnRUJBTERNM0FLbUpWcTVhWkhuai9EMjc5Y2t2YVNBUVlJRjc1TXpZZUphc2NOMENYQWM5ZzU4RWE2NAppQ2JrSEFkSURYMlhZV01tTkgzTXdKY1pjQ3FQTXArbm5hUXFEdG1uSzhPUjVHVkUzc0RmclpoRmZlUU8xNU95CkNycHNzcjNBQ0tJTENxamlpakx2c09GeW9DZnowMHUwVzhwdGc2Nm5vcUh2T0NSNENJNDZxYXJPQUpLTDlYOEUKK1RhNWZYOGpvcDhGbTBEUXkzTnpscktNK1BBa0tmTm93YXhQVHJaNURPYWhSUkdJK2lwRy9DL1I1MXRuT0k5YQp3YUVRRlcyYjdlcGFaakJrbFpjcCszQ2JNcHNOckFoNXZIeFNSbktYVmxYdzJrMnVyaHgvTmFranlZb0twUHlYCnUzTG8yN0JQeDcvQ2FkUFAwSHRnNncxRmNTMFNoTmNDQXdFQUFhTlhNRlV3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREFUQU9CZ05WSFE4QkFmOEVCQU1DQVFZd0hRWURWUjBPQkJZRQpGSDVseUNrQ3VMd3ZLR24xVnFscWdwaE1rLytKTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFCb2x5M0xnQ2oxCkNpV0RFWVo2Rkk1cjk0VHdlSENlZGdWdzcwL0twQVZBeXZHcERubERUMTY4VzhpSWpxbjQ5b05ZNlA2cWVROGYKakY0Mzd5YkJORDNsUGRJVnpnZVNWK3VwZHdOSHNTRDBxaVZNczJUVldXTytRTS9RcnBROXo5OEF4TXYxZ2ZvSgowb2lDNmZHNHBremJzVDFPYjRqbFJJb2dDZmFCZGNCcHNDLzhkUzhBekZKYnZLNmtBVXZrUFBnMVlLY0N3VGs3CkE5NTd0S3lUYlNxTFdLMW9mN3JMSzVUbWxpMVVGSnlPWGtpSTRqbmZpaFJTelFEd1VKYy9MZHFxNGEranBBZnkKTHEyMjF1UC9sZ3ZNVTFkbEtZU1hnaW5zM3lEeVIzc0E0TExlZTRCTm52ejdEaHJsWlQreGpka0o4cHZNcldPVApLVldFQnEwYThMQi8KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=" | base64 -d > $HOME/.mitmproxy/mitmproxy-ca-cert.pem
 
-adb shell settings put global http_proxy 127.0.0.1:8080
-echo -e "${G}[*] Proxy do celular LIGADO sozinho${N}"
-echo -e "${B}[*] Abre o ${G}Spy_MID5${N} e aperta em TUDO (login, loja, ranking, amigos, lobby)${N}"
-echo -e "${B}[*] Acabou? ${Y}Ctrl+C${N} aqui que ele desliga tudo sozinho${N}"
+echo -e "${G}[*] Espiao LIGADO"
+echo -e "${B}[*] Abre o ${G}Spy_MID5${N}${B} e aperta em TUDO (login, loja, ranking, amigos, lobby)"
+echo -e "${B}[*] Acabou? ${Y}Ctrl+C${N}${B} aqui"
 echo ""
-echo -e "${C}[*] Capturando ff2023.flows — o jogo falando ao vivo:${N}"
-trap 'adb shell settings put global http_proxy :0 >/dev/null 2>&1; echo ""; echo -e "${G}[i] Proxy DESLIGADO sozinho. Gravou ff2023.flows! Manda pro Elio no WhatsApp.${N}"' EXIT
+echo -e "${C}[*] Capturando ff2023.flows — o jogo falando ao vivo:"
 mitmdump -w ff2023.flows --set flow_detail=1
+echo ""
+echo -e "${G}[i] Gravou ff2023.flows! Manda pro Elio no WhatsApp."
